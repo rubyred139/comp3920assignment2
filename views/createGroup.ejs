@@ -1,0 +1,18 @@
+<%- include("templates/header") %>
+<form action="/submitGroup" method="post">
+	<input name="groupName" type="text" placeholder="New group name" /><br>
+	<% users.forEach(user=>{ %>
+	<input type="checkbox" name="users" id="<%= user.user_id %>" value="<%= user.user_id %>">
+		<label for="users"><%= user.username %></label><br>
+
+	</input>
+	<% }) %>
+
+	<button>Create Group</button>
+</form>
+
+<% if (errMsg) { %>
+	<div><span style="color: red"><%= errMsg %></span></div>
+<% } %> 
+
+<%- include("templates/footer") %>

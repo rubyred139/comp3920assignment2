@@ -1,0 +1,10 @@
+<%- include("templates/header") %>
+<h1>Welcome to Ruby's 3920 Assignment2!</h1>
+<% if (authenticated) { %>
+<a href="/members">Members Area</a>
+<a href="/signout">Sign out</a>
+
+<% } else { %>
+<a href="/signup">Sign Up</a>
+<a href="/login">Log in</a>
+<% } %> <%- include("templates/footer") %>

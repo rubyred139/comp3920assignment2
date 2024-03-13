@@ -1,0 +1,25 @@
+<%- include("templates/header") %>
+<h1>Current users in group <%= groupId %></h1>
+<ul id="currentMembers" name="currentMembers">
+	<% currentMembers.forEach(member=>{ %>
+	<li><%= member.username %></li>
+	<% }) %>
+</ul>
+
+<form action="/chatGroups/<%= groupId %>/invite/submitInvite" method="post">
+	<label for="nonMembers">Choose a user:</label>
+
+	<select id="nonMembers" name="nonMembers">
+		<option></option>
+		<% nonMembers.forEach(nonMember => { %>
+		<option id="<%= nonMember.user_id %>" value="<%= nonMember.user_id %>">
+			<%= nonMember.username %>
+		</option>
+		<% }) %>
+	</select>
+
+	<input type="submit" value="Submit" />
+</form>
+<% if (errMsg) { %>
+<div><span style="color: red"><%= errMsg %></span></div>
+<% } %> <%- include("templates/footer") %>
