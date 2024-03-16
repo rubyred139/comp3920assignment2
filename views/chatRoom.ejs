@@ -1,7 +1,6 @@
 <%- include("templates/header") %>
 <h1>Hello, <%= user %></h1>
 <h1>Chat Room <%= groupId %></h1>
-<img src="/100.jpg">
 <!-- Function to render a message block -->
 <% function renderMessageBlock(message, align) { %>
     <div class="message <%= align %>" style="text-align: <%= align %>;">
@@ -18,24 +17,22 @@
 		>
 		<span
 			id="messageId"
-			style="
-			background-color: <%= message.user_id == curUserId ? 'lightgreen' : 'lightblue' %>;
-		</span>;
-				padding: 5px;
-				border-radius: 10px;
+			style="background-color:  <%= message.user_id == curUserId ? 'lightgreen' : 'lightblue' %>; 
+			padding: 5px;
+			border-radius: 10px;
 			"
 		>
 			<%= message.text %>
 		</span>
-	</input>
+		</input>
 		<p><em><%= message.sent_datetime %></em></p>
-
 		<select id="emojiSelect" name="emoji" onchange="this.form.action = '/chatGroups/<%= groupId %>/' + this.value + '/submitEmoji'; this.form.submit()">
 			<option value="" data-image=""></option>
-			<option value="3" data-image="/happy.jpg">happy</option>
-			<option value="2" data-image="100.jpg"></option>
-			<option value="1" data-image="/thumb.jpg">thumb</option>
+			<option value="3" style="background-image: url('/happy.jpg'); background-repeat: no-repeat; background-position: 5px center;">happy</option>
+			<option value="2" style="background-image: url('/100.jpg'); background-repeat: no-repeat; background-position: 5px center;">100</option>
+			<option value="1" style="background-image: url('/thumb.jpg'); background-repeat: no-repeat; background-position: 5px center;">thumb</option>
 		</select>
+		
 		<button id="submitFormBtn" type="button" style="display: none;"></button>
 	</form>
     </div>
@@ -77,10 +74,10 @@
     <% } %>
 </div>
 
-<div style="text-align: right">
-    <input type="text" id="inputField" name="name" placeholder="Enter your message" />
-    <button>Submit</button>
-</div>
+<form style="text-align: right" action="/chatGroups/<%= groupId %>/submitMessage" method="post">
+    <input type="text" id="inputField" name="text" placeholder="Enter your message" />
+    <button >Submit</button>
+</form>
 
 <a href="/chatGroups/<%= groupId %>/invite">
     <button id="inviteButton">Invite More People</button>

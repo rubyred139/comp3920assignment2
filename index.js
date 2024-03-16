@@ -218,6 +218,13 @@ app.get("/chatGroups/:groupId", async (req, res) => {
 		groupId: groupId,
 	});
 });
+app.post("chatGroups/:groupId/submitMessage", async (req, res) => {
+	var text = req.body.text;
+	var groupId = req.params.groupId;
+	var userId = req.session.userId;
+	var currentTime = new Date();
+	console.log("currentTime: " + currentTime);
+});
 
 app.post("/chatGroups/:groupId/:messageId/submitEmoji", async (req, res) => {
 	var groupId = req.params.groupId;
@@ -285,14 +292,6 @@ app.post("/chatGroups/:groupId/invite/submitInvite", async (req, res) => {
 		res.render("errorMessage", { error: "Failed to submit a new invite." });
 	}
 });
-
-// app.use("/chatRoom", sessionValidation);
-// app.get("/chatRoom/:roomId", async (req, res) => {
-// 	var userId = req.session.userId;
-// 	var roomId = req.params.roomId;
-// 	var results = await db_msg.getChatMessage(roomId);
-// 	res.render("chatRoom", { curUserId: userId, messages: results });
-// });
 
 app.get("/createGroup", async (req, res) => {
 	var users = await db_users.getUsers();

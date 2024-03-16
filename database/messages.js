@@ -27,6 +27,49 @@ async function getChatMessage(postData) {
 	}
 }
 
+async function submitMessage(postData) {
+	//get room_user_id
+	let getRoomUserIdSQL = `
+		SELECT * FROM room_user
+		WHERE room_id = :room_id AND user_id = :user_id
+	`;
+	let param_rui = {
+		room_id: postData.room_id,
+		user_id: postData.user_id,
+	};
+
+	try {
+		results = await database.query(getRoomUserIdSQL, params);
+		console.log("Successfully geting the room_user_id");
+		var room_user_id = results[0];
+	} catch (err) {
+		console.log(err);
+		console.log("Fail submitting the room_user_id");
+		return false;
+	}
+
+	//insert new message into table messages
+	let submitMessageSQL = `
+		INSERT INTO messages(room_user_id, sent_datetime, text)
+		VALUES(:room_user_id, :sent_time, text: text)
+	`;
+
+	let params = {
+		room_user_id: room_user_id,
+		sentTime: postData.sentTime,
+		text: postData.text,
+	};
+
+	try {
+		results = await database.query(submitMessageSQL, params);
+		console.log("Successfully geting the chat messages");
+	} catch (err) {
+		console.log(err);
+		console.log("Fail submitting chat messages");
+		return false;
+	}
+}
+
 async function clearUnread(postData) {
 	let clearUnreadSQL = `
         UPDATE room_user
@@ -46,4 +89,4 @@ async function clearUnread(postData) {
 	}
 }
 
-module.exports = { getChatMessage, clearUnread };
+module.exports = { getChatMessage, clearUnread, submitMessage };
