@@ -5,7 +5,7 @@ async function getChatMessage(postData) {
 	SELECT 
     message.*,
     CASE 
-        WHEN message.message_id <= ru.last_read_message_id THEN 'read' 
+        WHEN message.message_id <= (SELECT last_read_message_id FROM room_user WHERE user_id = :user_id AND room_id = :room_id) THEN 'read' 
         ELSE 'unread' 
     END AS message_status,
     user.username, user.user_id FROM message
@@ -88,10 +88,10 @@ async function clearUnread(postData) {
             SELECT MAX(message_id)
             FROM message
         )
-		WHERE user_id = :user_id;  
+		WHERE user_id = :user_id AND room_id = :room_id;  
     `;
 
-	let param = { user_id: postData };
+	let param = { user_id: postData.user_id, room_id: postData.room_id };
 
 	try {
 		results = await database.query(clearUnreadSQL, param);

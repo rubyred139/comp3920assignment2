@@ -1,57 +1,93 @@
 const database = include("databaseConnection");
 //given specific user, return groupid, groupname, last message time, #of unread message
 async function viewChatGroups(postData) {
-	// With a user, find all groups they belong to
-	let groups = `
-SELECT
-    ru.user_id,
-    ru.room_id,
-    r.name,
-    MAX(m.sent_datetime) AS last_message_time,
-    COUNT(CASE WHEN room_unread.message_id IS NOT NULL THEN 1 ELSE NULL END) AS unread_message_count
-FROM
-    room_user AS ru
-    JOIN room AS r ON r.room_id = ru.room_id
-    LEFT JOIN message AS m ON m.room_user_id = ru.room_user_id
-    LEFT JOIN (
-        SELECT
-            ru.room_id,
-            m.message_id
-        FROM
-            message AS m
-            JOIN room_user AS ru ON m.room_user_id = ru.room_user_id
-        WHERE
-            m.message_id > ru.last_read_message_id
-            AND ru.user_id = :user_id
-    ) AS room_unread ON room_unread.room_id = ru.room_id
-WHERE
-    ru.user_id = :user_id
-GROUP BY
-    ru.user_id,
-    ru.room_id,
-    r.name;
+	// given a userId, get group list and last message
+	let getGroupList = `
+		SELECT r.room_id, r.name, MAX(m.sent_datetime) AS last_message_time
+		FROM room AS r
+		JOIN room_user AS ru ON r.room_id = ru.room_id
+		LEFT JOIN message AS m ON ru.room_user_id = m.room_user_id
+		WHERE ru.user_id = :user_id
+		GROUP BY r.room_id, r.name
+	`;
 
+	// given a userId, get the count of unread messages
+	let getUnreadMsgCount = `
 
+		SELECT 
+			ru.room_id AS room_id, user_id,
+			SUM(CASE 
+				WHEN message.message_id <= (user_rooms.last_read_message_id) THEN 0 
+				ELSE 1
+			END) AS num_unread_messages
 
+		FROM 
+			message
+			JOIN room_user AS ru USING (room_user_id)
+			JOIN (
+				SELECT DISTINCT room_id, last_read_message_id
+				FROM room_user
+				WHERE user_id = :user_id
+			) AS user_rooms ON user_rooms.room_id = ru.room_id  
+		GROUP BY ru.room_id ;
 
-
-    ;`;
+	`;
 
 	let params = {
 		user_id: postData,
 	};
 
 	try {
-		const results = await database.query(groups, params);
+		const groupListResults = await database.query(getGroupList, params);
+		// console.log(groupListResults[0]);
+		console.log("Successfully retrieved group list");
+		const unreadMsgCountResults = await database.query(
+			getUnreadMsgCount,
+			params
+		);
+		// console.log(unreadMsgCountResults[0]);
+		console.log("Successfully retrieved unread messages");
 
-		console.log("Successfully retrieved groups");
-		console.log(results[0]);
-		return results[0];
+		const combinedResults = {
+			groupList: groupListResults[0],
+			unreadMsgCount: unreadMsgCountResults[0],
+		};
+		console.log(combinedResults);
+		return combinedResults;
 	} catch (err) {
 		console.log("Error getting the groups of the user");
 		console.log(err);
 		return false;
 	}
+	// let groups = `
+	// SELECT
+	//     ru.user_id,
+	//     ru.room_id,
+	//     r.name,
+	//     MAX(m.sent_datetime) AS last_message_time,
+	//     COUNT(CASE WHEN room_unread.message_id IS NOT NULL THEN 1 ELSE NULL END) AS unread_message_count
+	// FROM
+	//     room_user AS ru
+	//     JOIN room AS r ON r.room_id = ru.room_id
+	//     LEFT JOIN message AS m ON m.room_user_id = ru.room_user_id
+	//     LEFT JOIN (
+	//         SELECT
+	//             ru.room_id,
+	//             m.message_id
+	//         FROM
+	//             message AS m
+	//             JOIN room_user AS ru ON m.room_user_id = ru.room_user_id
+	//         WHERE
+	//             m.message_id > ru.last_read_message_id
+	//             AND ru.user_id = :user_id
+	//     ) AS room_unread ON room_unread.room_id = ru.room_id
+	// WHERE
+	//     ru.user_id = :user_id
+	// GROUP BY
+	//     ru.user_id,
+	//     ru.room_id,
+	//     r.name;
+	//     ;`;
 }
 
 // Given (group)room_id, get all the users in the group

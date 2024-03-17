@@ -214,7 +214,10 @@ app.get("/chatGroups", async (req, res) => {
 	console.log("userId: " + userId);
 	var groupData = await groups.viewChatGroups(userId);
 
-	res.render("chatGroups", { groups: groupData });
+	res.render("chatGroups", {
+		groupList: groupData.groupList,
+		unreadMsg: groupData.unreadMsgCount,
+	});
 });
 
 app.get("/chatGroups/:groupId", authorizedChatGroup, async (req, res) => {
@@ -228,7 +231,7 @@ app.get("/chatGroups/:groupId", authorizedChatGroup, async (req, res) => {
 			room_id: roomId,
 			user_id: userId,
 		});
-		await db_msg.clearUnread(userId);
+		await db_msg.clearUnread({ user_id: userId, room_id: groupId });
 	} catch (err) {
 		console.log(err);
 	}
@@ -252,6 +255,7 @@ app.get("/chatGroups/:groupId", authorizedChatGroup, async (req, res) => {
 app.post("/chatGroups/:groupId/submitMessage", async (req, res) => {
 	var text = req.body.text;
 	var groupId = req.params.groupId;
+
 	// console.log("groupId:" + groupId);
 	var userId = req.session.userId;
 	var currentTime = new Date();
@@ -263,7 +267,7 @@ app.post("/chatGroups/:groupId/submitMessage", async (req, res) => {
 			sentTime: currentTime,
 			text: text,
 		});
-		await db_msg.clearUnread(userId);
+		await db_msg.clearUnread({ user_id: userId, room_id: groupId });
 		res.redirect(`/chatGroups/${groupId}/`);
 	} catch (err) {
 		console.log(err);
@@ -404,8 +408,8 @@ async function authorizedChatGroup(req, res, next) {
 	const userId = req.session.userId;
 
 	const results = await groups.viewChatGroups(userId);
-	userChatGroups = results.map((group) => group.room_id);
-
+	userChatGroups = results.groupList.map((group) => group.room_id);
+	console.log(userChatGroups);
 	var authorized = false;
 	for (const group in userChatGroups) {
 		console.log("group: " + userChatGroups[group]);

@@ -1,6 +1,6 @@
 <%- include("templates/header") %>
 <h2>Your chat groups</h2>
-<% if (groups.length > 0) { %>
+<% if (groupList.length > 0 ) { %>
 <table border="1">
 	<tr style="border: 1px solid black">
 		<th>Group Id</th>
@@ -9,23 +9,27 @@
 		<th>Number of unread message</th>
 	</tr>
 
-	<% groups.forEach(group => { %>
+	<% groupList.forEach(group => { %>
 	<tr>
 		<td>
 			<a href="/chatGroups/<%= group.room_id %>"
 				>Group <%= group.room_id %></a
 			>
 		</td>
-
 		<td><%= group.name %></td>
 		<td><%= group.last_message_time %></td>
-		<td><%= group.unread_message_count %></td>
+		<td>
+			<% let unreadFound = false; %> <% unreadMsg.forEach(msg => { %> <%
+			if (msg.room_id == group.room_id) { %> <%= msg.num_unread_messages
+			%> <% unreadFound = true; %> <% } %> <% }); %> <% if (!unreadFound)
+			{ %> 0 <% } %>
+		</td>
 	</tr>
 	<% }); %>
 </table>
 <% } else { %>
 <p>No groups found.</p>
 <% } %>
-<div>Number of groups: <%=groups.length %></div>
+<div>Number of groups: <%= groupList.length %></div>
 <a href="/createGroup"><button id="createGroup">Create New Group</button></a>
 <%- include("templates/footer") %>
