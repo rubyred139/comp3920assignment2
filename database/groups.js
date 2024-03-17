@@ -59,35 +59,6 @@ async function viewChatGroups(postData) {
 		console.log(err);
 		return false;
 	}
-	// let groups = `
-	// SELECT
-	//     ru.user_id,
-	//     ru.room_id,
-	//     r.name,
-	//     MAX(m.sent_datetime) AS last_message_time,
-	//     COUNT(CASE WHEN room_unread.message_id IS NOT NULL THEN 1 ELSE NULL END) AS unread_message_count
-	// FROM
-	//     room_user AS ru
-	//     JOIN room AS r ON r.room_id = ru.room_id
-	//     LEFT JOIN message AS m ON m.room_user_id = ru.room_user_id
-	//     LEFT JOIN (
-	//         SELECT
-	//             ru.room_id,
-	//             m.message_id
-	//         FROM
-	//             message AS m
-	//             JOIN room_user AS ru ON m.room_user_id = ru.room_user_id
-	//         WHERE
-	//             m.message_id > ru.last_read_message_id
-	//             AND ru.user_id = :user_id
-	//     ) AS room_unread ON room_unread.room_id = ru.room_id
-	// WHERE
-	//     ru.user_id = :user_id
-	// GROUP BY
-	//     ru.user_id,
-	//     ru.room_id,
-	//     r.name;
-	//     ;`;
 }
 
 // Given (group)room_id, get all the users in the group

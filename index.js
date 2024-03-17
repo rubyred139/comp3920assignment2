@@ -404,7 +404,7 @@ function sessionValidation(req, res, next) {
 
 async function authorizedChatGroup(req, res, next) {
 	const groupId = req.params.groupId;
-	console.log("group:" + groupId);
+	// console.log("group:" + groupId);
 	const userId = req.session.userId;
 
 	const results = await groups.viewChatGroups(userId);
@@ -412,7 +412,7 @@ async function authorizedChatGroup(req, res, next) {
 	console.log(userChatGroups);
 	var authorized = false;
 	for (const group in userChatGroups) {
-		console.log("group: " + userChatGroups[group]);
+		// console.log("group: " + userChatGroups[group]);
 		if (groupId == userChatGroups[group]) {
 			authorized = true;
 		}

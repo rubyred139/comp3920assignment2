@@ -17,7 +17,10 @@
 			>
 		</td>
 		<td><%= group.name %></td>
-		<td><%= group.last_message_time %></td>
+		<td>
+			<%= group.last_message_time ? group.last_message_time : "No message"
+			%>
+		</td>
 		<td>
 			<% let unreadFound = false; %> <% unreadMsg.forEach(msg => { %> <%
 			if (msg.room_id == group.room_id) { %> <%= msg.num_unread_messages
