@@ -3,21 +3,40 @@ const database = include("databaseConnection");
 async function viewChatGroups(postData) {
 	// With a user, find all groups they belong to
 	let groups = `
-		select ru.user_id, ru.room_id, r.name,  
-		MAX(room_unread.sent_datetime) AS last_message_time, 
-		COUNT(CASE WHEN room_unread.message_id is not NULL THEN 1 ELSE NULL END) 
-		AS unread_message_count
-		from  room_user as ru join room as r on r.room_id = ru.room_id
-		left join (
-			select ru.room_id, m.message_id, m.sent_datetime
-			from message as m
-			join room_user as ru on m.room_user_id = ru.room_user_id
-			where m.message_id > ru.last_read_message_id
-		) as room_unread on room_unread.room_id = ru.room_id
-		where ru.user_id=:user_id 
-		group by ru.user_id, ru.room_id,r.name;
+SELECT
+    ru.user_id,
+    ru.room_id,
+    r.name,
+    MAX(m.sent_datetime) AS last_message_time,
+    COUNT(CASE WHEN room_unread.message_id IS NOT NULL THEN 1 ELSE NULL END) AS unread_message_count
+FROM
+    room_user AS ru
+    JOIN room AS r ON r.room_id = ru.room_id
+    LEFT JOIN message AS m ON m.room_user_id = ru.room_user_id
+    LEFT JOIN (
+        SELECT
+            ru.room_id,
+            m.message_id
+        FROM
+            message AS m
+            JOIN room_user AS ru ON m.room_user_id = ru.room_user_id
+        WHERE
+            m.message_id > ru.last_read_message_id
+            AND ru.user_id = :user_id
+    ) AS room_unread ON room_unread.room_id = ru.room_id
+WHERE
+    ru.user_id = :user_id
+GROUP BY
+    ru.user_id,
+    ru.room_id,
+    r.name;
+
+
+
+
 
     ;`;
+
 	let params = {
 		user_id: postData,
 	};
@@ -113,12 +132,22 @@ async function submitGroup(postData) {
 	}
 
 	let submitGroup = `
-		INSERT INTO room_user(user_id, room_id)
-		VALUES(:userId, :newGroupId)
-		
+		INSERT INTO room_user(user_id, room_id, last_read_message_id)
+		VALUES
 	`;
+	if (Array.isArray(postData.userIds)) {
+		postData.userIds.forEach((userId, index) => {
+			submitGroup += `( ${userId}, :newGroupId, 1),`;
+		});
+	} else {
+		// Treat postData.userIds as a single value
+		submitGroup += `( ${postData.userIds}, :newGroupId, 1),`;
+	}
+	// Remove the trailing comma
+	submitGroup = submitGroup.slice(0, -1);
+
 	let param2 = {
-		userId: postData.userId,
+		// userId: postData.userId,
 		newGroupId: newGroupId,
 	};
 

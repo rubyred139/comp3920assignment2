@@ -51,6 +51,7 @@ app.use(
 // app.use("/", sessionValidation);
 app.get("/", (req, res) => {
 	const authenticated = req.session.authenticated;
+	console.log("userId: " + req.session.userId);
 	res.render("index", {
 		authenticated: authenticated,
 	});
@@ -64,10 +65,20 @@ app.get("/login", (req, res) => {
 	res.render("login");
 });
 
+const passwordValidator =
+	/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$/;
+
 app.post("/submitUser", async (req, res) => {
 	var username = req.body.username;
 	var email = req.body.email;
 	var password = req.body.password;
+
+	// Password validation
+	if (!passwordValidator.test(password)) {
+		return res.render("signup", {
+			errMsg: "Password must be at least 10 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special symbol.",
+		});
+	}
 
 	if (!username || !email || !password) {
 		// Create an object to hold the missing fields
@@ -103,12 +114,19 @@ app.post("/submitUser", async (req, res) => {
 	});
 
 	if (success) {
-		var results = await db_users.getUsers();
+		// var results = await db_users.getUsers();
 
 		req.session.authenticated = true;
 		req.session.email = email;
 		req.session.username = username;
+
+		var results = await db_users.getUser({
+			user: username,
+			hashedPassword: password,
+		});
+		req.session.userId = results[0].user_id;
 		res.redirect("/members");
+		// res.redirect("/login");
 	} else {
 		res.render("errorMessage", { error: "Failed to create user." });
 	}
@@ -193,37 +211,63 @@ app.get("/members", (req, res) => {
 app.use("/chatGroups", sessionValidation);
 app.get("/chatGroups", async (req, res) => {
 	var userId = req.session.userId;
+	console.log("userId: " + userId);
 	var groupData = await groups.viewChatGroups(userId);
-	// await db_msg.clearUnread();
 
 	res.render("chatGroups", { groups: groupData });
 });
 
-app.get("/chatGroups/:groupId", async (req, res) => {
+app.get("/chatGroups/:groupId", authorizedChatGroup, async (req, res) => {
 	var groupId = req.params.groupId;
 	var userId = req.session.userId;
 	var roomId = req.params.groupId;
 	var username = req.session.username;
-
+	// console.log("groupId:" + groupId);
 	try {
-		var results = await db_msg.getChatMessage(roomId);
-		await db_msg.clearUnread();
+		var results = await db_msg.getChatMessage({
+			room_id: roomId,
+			user_id: userId,
+		});
+		await db_msg.clearUnread(userId);
 	} catch (err) {
 		console.log(err);
 	}
+	// get emojis
+	try {
+		var emojiResults = await db_msg.getEmojis(groupId);
+		console.log(emojiResults);
+	} catch (err) {
+		console.log(err);
+	}
+
 	res.render("chatRoom", {
 		user: username,
 		curUserId: userId,
 		messages: results,
 		groupId: groupId,
+		emojis: emojiResults,
 	});
 });
-app.post("chatGroups/:groupId/submitMessage", async (req, res) => {
+
+app.post("/chatGroups/:groupId/submitMessage", async (req, res) => {
 	var text = req.body.text;
 	var groupId = req.params.groupId;
+	// console.log("groupId:" + groupId);
 	var userId = req.session.userId;
 	var currentTime = new Date();
-	console.log("currentTime: " + currentTime);
+
+	try {
+		var results = await db_msg.submitMessage({
+			room_id: groupId,
+			user_id: userId,
+			sentTime: currentTime,
+			text: text,
+		});
+		await db_msg.clearUnread(userId);
+		res.redirect(`/chatGroups/${groupId}/`);
+	} catch (err) {
+		console.log(err);
+	}
 });
 
 app.post("/chatGroups/:groupId/:messageId/submitEmoji", async (req, res) => {
@@ -237,7 +281,11 @@ app.post("/chatGroups/:groupId/:messageId/submitEmoji", async (req, res) => {
 		message_id: messageId,
 	});
 	console.log(result);
-	res.redirect(`/chatGroups/${groupId}/`);
+	res.send(
+		`<script>alert("Submission successful!"); window.location.href = "/chatGroups/${groupId}";</script>`
+	);
+
+	// res.redirect(`/chatGroups/${groupId}/`);
 });
 app.get("/chatGroups/:groupId/invite", async (req, res) => {
 	var groupId = req.params.groupId;
@@ -301,13 +349,13 @@ app.post("/submitGroup", async (req, res) => {
 	var username = req.session.username;
 	var users = await db_users.getUsers(); // passing throgh rendering
 	var groupName = req.body.groupName;
-	var userId = req.body.users;
-	if (!groupName || !userId) {
+	var userIds = req.body.users;
+	if (!groupName || !userIds) {
 		var missingFields = {};
 		if (!groupName) {
 			missingFields.groupName = "Group name";
 		}
-		if (!userId) {
+		if (!userIds) {
 			missingFields.users = "One User";
 		}
 		const errorMessage = Object.entries(missingFields)
@@ -319,7 +367,7 @@ app.post("/submitGroup", async (req, res) => {
 	}
 	var newGroupId = await groups.submitGroup({
 		groupName: groupName,
-		userId: userId,
+		userIds: userIds,
 	});
 	if (newGroupId) {
 		res.redirect("/chatGroups");
@@ -347,6 +395,29 @@ function sessionValidation(req, res, next) {
 		return;
 	} else {
 		next();
+	}
+}
+
+async function authorizedChatGroup(req, res, next) {
+	const groupId = req.params.groupId;
+	console.log("group:" + groupId);
+	const userId = req.session.userId;
+
+	const results = await groups.viewChatGroups(userId);
+	userChatGroups = results.map((group) => group.room_id);
+
+	var authorized = false;
+	for (const group in userChatGroups) {
+		console.log("group: " + userChatGroups[group]);
+		if (groupId == userChatGroups[group]) {
+			authorized = true;
+		}
+	}
+	console.log("authorization: " + authorized);
+	if (userChatGroups && authorized) {
+		next();
+	} else {
+		res.status(400).send({ error: "Unauthorized access to chat group" });
 	}
 }
 

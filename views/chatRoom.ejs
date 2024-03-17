@@ -2,10 +2,15 @@
 <h1>Hello, <%= user %></h1>
 <h1>Chat Room <%= groupId %></h1>
 <!-- Function to render a message block -->
-<% function renderMessageBlock(message, align) { %>
-    <div class="message <%= align %>" style="text-align: <%= align %>;">
-        <p><strong><%= message.user_id == curUserId ? "You" : message.username %></strong></p>
-		<form
+<% function renderMessageBlock(message, emojis, align) { %>
+<div class="message <%= align %>" style="text-align: <%= align %>">
+	<p>
+		<strong
+			><%= message.user_id === curUserId ? "You" : message.username
+			%></strong
+		>
+	</p>
+	<form
 		id="emojiForm"
 		action="/chatGroups/<%= groupId %>/<%= message.message_id %>/submitEmoji"
 		method="post"
@@ -14,75 +19,118 @@
 			type="hidden"
 			name="messageId"
 			value="<%= message.message_id %>"
-		>
+		/>
 		<span
 			id="messageId"
-			style="background-color:  <%= message.user_id == curUserId ? 'lightgreen' : 'lightblue' %>; 
-			padding: 5px;
-			border-radius: 10px;
-			"
+			style="background-color: <%= message.user_id === curUserId ? 'lightgreen' : 'lightblue' %>; padding: 5px; border-radius: 10px;"
 		>
-			<%= message.text %>
-		</span>
-		</input>
+			<%= message.text %> </span
+		><br />
+
+		<% if (Array.isArray(emojis) && emojis.length) { %> <%
+		emojis.forEach(emoji => { %> <% if(emoji.message_id ==
+		message.message_id) {%>
+		<div class="display-emoji" style="margin-top: 10px">
+			<span>
+				<img
+					src="/<%= emoji.emoji_name %>.jpg"
+					width="20"
+					height="20"
+				/>
+				<label><%= emoji.count %></label>
+			</span>
+		</div>
+		<% }; %> <% }); %> <% } %>
+		<div style="margin-top: 10px">
+			<select
+				id="emojiSelect"
+				name="emoji"
+				onchange="this.form.action = '/chatGroups/<%= groupId %>/' + this.value + '/submitEmoji'; this.form.submit()"
+			>
+				<option value="" data-image=""></option>
+				<option
+					value="3"
+					style="
+						background-image: url('/happy.jpg');
+						background-repeat: no-repeat;
+						background-position: 5px center;
+					"
+				>
+					happy
+				</option>
+				<option
+					value="2"
+					style="
+						background-image: url('/100.jpg');
+						background-repeat: no-repeat;
+						background-position: 5px center;
+					"
+				>
+					100
+				</option>
+				<option
+					value="1"
+					style="
+						background-image: url('/thumb.jpg');
+						background-repeat: no-repeat;
+						background-position: 5px center;
+					"
+				>
+					thumb
+				</option>
+			</select>
+		</div>
+
 		<p><em><%= message.sent_datetime %></em></p>
-		<select id="emojiSelect" name="emoji" onchange="this.form.action = '/chatGroups/<%= groupId %>/' + this.value + '/submitEmoji'; this.form.submit()">
-			<option value="" data-image=""></option>
-			<option value="3" style="background-image: url('/happy.jpg'); background-repeat: no-repeat; background-position: 5px center;">happy</option>
-			<option value="2" style="background-image: url('/100.jpg'); background-repeat: no-repeat; background-position: 5px center;">100</option>
-			<option value="1" style="background-image: url('/thumb.jpg'); background-repeat: no-repeat; background-position: 5px center;">thumb</option>
-		</select>
-		
-		<button id="submitFormBtn" type="button" style="display: none;"></button>
+		<button id="submitFormBtn" type="button" style="display: none"></button>
 	</form>
-    </div>
+</div>
 <% } %>
 
 <div class="chat-messages">
-    <p style="text-align: center">Read messages</p>
-    <% if(messages && messages.length > 0) { %>
-        <div class="read-messages" style="border: 1px solid black;">
-            <% messages.forEach(message => { %>
-                <% if(message.message_status === 'read') { %>
-                    <% if(message.user_id === curUserId) { %>
-                        <% renderMessageBlock(message, 'right') %>
-                    <% } else { %>
-                        <% renderMessageBlock(message, 'left') %>
-                    <% } %>
-                <% } %>
-            <% }) %>
-        </div>
-    <% } else { %>
-        <p style="text-align: center">No read messages</p>
-    <% } %>
+	<p style="text-align: center">Read messages</p>
+	<% if(messages && messages.length > 0) { %>
+	<div class="read-messages" style="border: 1px solid black">
+		<% messages.forEach(message => { %> <% if(message &&
+		message.message_status === 'read') { %> <% if(message.user_id ===
+		curUserId) { %> <% renderMessageBlock(message,emojis, 'right') %> <% }
+		else { %> <% renderMessageBlock(message,emojis, 'left') %> <% } %> <% }
+		%> <% if(message.message_status === 'unread' && message.user_id ===
+		curUserId) { %> <% renderMessageBlock(message, emojis,'right') %> <% }
+		%> <% }) %>
+	</div>
+	<% } else { %>
+	<p style="text-align: center">No read messages</p>
+	<% } %>
 
-    <p style="text-align: center">Unread messages</p>
-    <% if(messages && messages.length > 0) { %>
-        <div class="unread-messages" style="border: 1px solid black;">
-            <% messages.forEach(message => { %>
-                <% if(message.message_status === 'unread') { %>
-                    <% if(message.user_id === curUserId) { %>
-                        <% renderMessageBlock(message, 'right') %>
-                    <% } else { %>
-                        <% renderMessageBlock(message, 'left') %>
-                    <% } %>
-                <% } %>
-            <% }) %>
-        </div>
-    <% } else { %>
-        <p style="text-align: center">No unread messages</p>
-    <% } %>
+	<p style="text-align: center">Unread messages</p>
+	<% if(messages && messages.length > 0) { %>
+	<div class="unread-messages" style="border: 1px solid black">
+		<% messages.forEach(message => { %> <% if(message &&
+		message.message_status === 'unread' && message.user_id !== curUserId) {
+		%> <% renderMessageBlock(message, emojis, 'left') %> <% } %> <% }) %>
+	</div>
+	<% } else { %>
+	<p style="text-align: center">No unread messages</p>
+	<% } %>
 </div>
 
-<form style="text-align: right" action="/chatGroups/<%= groupId %>/submitMessage" method="post">
-    <input type="text" id="inputField" name="text" placeholder="Enter your message" />
-    <button >Submit</button>
+<form
+	style="text-align: right"
+	action="/chatGroups/<%= groupId %>/submitMessage"
+	method="post"
+>
+	<input
+		type="text"
+		id="inputField"
+		name="text"
+		placeholder="Enter your message"
+	/>
+	<button type="submit" id="submitButton">Submit</button>
 </form>
 
 <a href="/chatGroups/<%= groupId %>/invite">
-    <button id="inviteButton">Invite More People</button>
+	<button id="inviteButton">Invite More People</button>
 </a>
 
 <%- include("templates/footer") %>
-
-
